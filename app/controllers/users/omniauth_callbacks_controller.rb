@@ -19,8 +19,14 @@ class Users::OmniauthCallbacksController < ApplicationController
     render locals: { hide_auth_buttons: true }
   end
 
+  def persist_auth_token(auth)
+    secret = SecureRandom.hex
+    secure_session.set "#{Users::AssociateAccountsController.key(secret)}", auth.to_json, expires: 10.minutes
+    "#{Discourse.base_path}/associate/#{secret}"
+  end
+
   def complete
-    auth = request.env["omniauth.auth"]
+    @auth = auth = request.env["omniauth.auth"]
     raise Discourse::NotFound unless request.env["omniauth.auth"]
 
     auth[:session] = session
@@ -28,10 +34,8 @@ class Users::OmniauthCallbacksController < ApplicationController
     authenticator = self.class.find_authenticator(params[:provider])
 
     if session.delete(:auth_reconnect) && authenticator.can_connect_existing_user? && current_user
-      # Save to redis, with a secret token, then redirect to confirmation screen
-      token = SecureRandom.hex
-      secure_session.set "#{Users::AssociateAccountsController.key(token)}", auth.to_json, expires: 10.minutes
-      return redirect_to "#{Discourse.base_path}/associate/#{token}"
+      path = persist_auth_token(auth)
+      return redirect_to path
     else
       DiscourseEvent.trigger(:before_auth, authenticator, auth, session, cookies)
       @auth_result = authenticator.after_authenticate(auth)
@@ -76,9 +80,16 @@ class Users::OmniauthCallbacksController < ApplicationController
 
     return render_auth_result_failure if @auth_result.failed?
 
+    client_hash = @auth_result.to_client_hash
+    if authenticator.can_connect_existing_user? &&
+      (SiteSetting.enable_local_logins || Discourse.enabled_authenticators.count > 1)
+      # There is more than one login method, and users are allowed to manage associations themselves
+      client_hash[:associate_url] = persist_auth_token(@auth)
+    end
+
     cookies['_bypass_cache'] = true
     cookies[:authentication_data] = {
-      value: @auth_result.to_client_hash.to_json,
+      value: client_hash.to_json,
       path: Discourse.base_path("/")
     }
     redirect_to @origin

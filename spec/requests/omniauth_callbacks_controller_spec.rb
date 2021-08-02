@@ -246,6 +246,17 @@ RSpec.describe Users::OmniauthCallbacksController do
         expect(data["destination_url"]).to eq(destination_url)
       end
 
+      it 'should return an associate url when multiple login methods enabled' do
+        get "/auth/google_oauth2/callback.json"
+        data = JSON.parse(cookies[:authentication_data])
+        expect(data["associate_url"]).to start_with('/associate/')
+
+        SiteSetting.enable_local_logins = false
+        get "/auth/google_oauth2/callback.json"
+        data = JSON.parse(cookies[:authentication_data])
+        expect(data["associate_url"]).to eq(nil)
+      end
+
       describe 'when site is invite_only' do
         before do
           SiteSetting.invite_only = true
