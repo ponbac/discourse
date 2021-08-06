@@ -19,14 +19,8 @@ class Users::OmniauthCallbacksController < ApplicationController
     render locals: { hide_auth_buttons: true }
   end
 
-  def persist_auth_token(auth)
-    secret = SecureRandom.hex
-    secure_session.set "#{Users::AssociateAccountsController.key(secret)}", auth.to_json, expires: 10.minutes
-    "#{Discourse.base_path}/associate/#{secret}"
-  end
-
   def complete
-    @auth = auth = request.env["omniauth.auth"]
+    auth = request.env["omniauth.auth"]
     raise Discourse::NotFound unless request.env["omniauth.auth"]
 
     auth[:session] = session
@@ -84,7 +78,7 @@ class Users::OmniauthCallbacksController < ApplicationController
     if authenticator.can_connect_existing_user? &&
       (SiteSetting.enable_local_logins || Discourse.enabled_authenticators.count > 1)
       # There is more than one login method, and users are allowed to manage associations themselves
-      client_hash[:associate_url] = persist_auth_token(@auth)
+      client_hash[:associate_url] = persist_auth_token(auth)
     end
 
     cookies['_bypass_cache'] = true
@@ -191,4 +185,9 @@ class Users::OmniauthCallbacksController < ApplicationController
     end
   end
 
+  def persist_auth_token(auth)
+    secret = SecureRandom.hex
+    secure_session.set "#{Users::AssociateAccountsController.key(secret)}", auth.to_json, expires: 10.minutes
+    "#{Discourse.base_path}/associate/#{secret}"
+  end
 end
