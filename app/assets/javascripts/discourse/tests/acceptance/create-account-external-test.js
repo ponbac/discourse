@@ -18,6 +18,9 @@ function setupAuthData(data) {
 }
 
 acceptance("Create Account - external auth", function (needs) {
+  needs.hooks.beforeEach(() => {
+    setupAuthData();
+  });
   needs.hooks.afterEach(() => {
     document
       .querySelector("head")
@@ -25,7 +28,6 @@ acceptance("Create Account - external auth", function (needs) {
   });
 
   test("when skip is disabled (default)", async function (assert) {
-    setupAuthData();
     await visit("/");
 
     assert.ok(
@@ -42,7 +44,6 @@ acceptance("Create Account - external auth", function (needs) {
   });
 
   test("when skip is enabled", async function (assert) {
-    setupAuthData();
     this.siteSettings.auth_skip_create_confirm = true;
     await visit("/");
 
@@ -53,9 +54,19 @@ acceptance("Create Account - external auth", function (needs) {
 
     assert.not(exists("#new-account-username"), "it does not show the fields");
   });
+});
+
+acceptance("Create account - with associate link", function (needs) {
+  needs.hooks.beforeEach(() => {
+    setupAuthData({ associate_url: "/associate/abcde" });
+  });
+  needs.hooks.afterEach(() => {
+    document
+      .querySelector("head")
+      .removeChild(document.getElementById("data-authentication"));
+  });
 
   test("displays associate link when allowed", async function (assert) {
-    setupAuthData({ associate_url: "/associate/abcde" });
     await visit("/");
 
     assert.ok(
