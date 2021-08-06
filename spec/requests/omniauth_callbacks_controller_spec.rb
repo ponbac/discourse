@@ -246,7 +246,7 @@ RSpec.describe Users::OmniauthCallbacksController do
         expect(data["destination_url"]).to eq(destination_url)
       end
 
-      it 'should return an associate url when multiple login methods enabled' do
+      it 'should return an associate url when multiple login methods are enabled' do
         get "/auth/google_oauth2/callback.json"
         expect(response.status).to eq(302)
 
