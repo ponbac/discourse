@@ -36,6 +36,7 @@ export default Component.extend(
   PluginApiMixin,
   UtilsMixin,
   {
+    tagName: "details",
     pluginApiIdentifiers: ["select-kit"],
     classNames: ["select-kit"],
     classNameBindings: [
@@ -75,7 +76,7 @@ export default Component.extend(
       this.set(
         "selectKit",
         EmberObject.create({
-          uniqueID: guidFor(this),
+          uniqueID: this.attrs?.id || guidFor(this),
           valueProperty: this.valueProperty,
           nameProperty: this.nameProperty,
           labelProperty: this.labelProperty,
@@ -124,6 +125,10 @@ export default Component.extend(
           onClearSelection: bind(this, this._onClearSelection),
           onHover: bind(this, this._onHover),
           onKeydown: bind(this, this._onKeydownWrapper),
+
+          mainElement: bind(this, this._mainElement),
+          headerElement: bind(this, this._headerElement),
+          bodyElement: bind(this, this._bodyElement),
         })
       );
     },
@@ -185,6 +190,12 @@ export default Component.extend(
       this.handleDeprecations();
     },
 
+    didInsertElement() {
+      this._super(...arguments);
+
+      this.element.addEventListener("toggle", this.selectKit.toggle);
+    },
+
     willDestroyElement() {
       this._super(...arguments);
 
@@ -194,6 +205,8 @@ export default Component.extend(
         this.popper.destroy();
         this.popper = null;
       }
+
+      this.element.removeEventListener("toggle", this.selectKit.toggle);
     },
 
     didReceiveAttrs() {
@@ -269,13 +282,13 @@ export default Component.extend(
       minimum: null,
       minimumLabel: null,
       autoInsertNoneItem: true,
-      clearOnClick: false,
       closeOnChange: true,
       limitMatches: null,
       placement: isDocumentRTL() ? "bottom-end" : "bottom-start",
       placementStrategy: null,
       filterComponent: "select-kit/select-kit-filter",
       selectedNameComponent: "selected-name",
+      selectedChoiceComponent: "selected-choice",
       castInteger: false,
       preventsClickPropagation: false,
       focusAfterOnChange: true,
@@ -435,8 +448,11 @@ export default Component.extend(
         resolve(items);
       }).finally(() => {
         if (!this.isDestroying && !this.isDestroyed) {
-          if (this.selectKit.options.closeOnChange) {
-            this.selectKit.close();
+          if (
+            this.selectKit.options.closeOnChange &&
+            this.selectKit.mainElement()
+          ) {
+            this.selectKit.mainElement().open = false;
           }
 
           if (this.selectKit.options.focusAfterOnChange) {
@@ -503,6 +519,18 @@ export default Component.extend(
 
     _onKeydownWrapper(event) {
       return this._boundaryActionHandler("onKeydown", event);
+    },
+
+    _mainElement() {
+      return document.querySelector(`#${this.selectKit.uniqueID}`);
+    },
+
+    _headerElement() {
+      return this.selectKit.mainElement().querySelector("summary");
+    },
+
+    _bodyElement() {
+      return this.selectKit.mainElement().querySelector(".select-kit-body");
     },
 
     _onHover(value, item) {
@@ -581,6 +609,10 @@ export default Component.extend(
     },
 
     _searchWrapper(filter) {
+      if (this.isDestroyed || this.isDestroying) {
+        return Promise.resolve([]);
+      }
+
       this.clearErrors();
       this.setProperties({
         mainCollection: [],
@@ -593,6 +625,10 @@ export default Component.extend(
 
       return Promise.resolve(this.search(filter))
         .then((result) => {
+          if (this.isDestroyed || this.isDestroying) {
+            return [];
+          }
+
           content = content.concat(makeArray(result));
           content = this.selectKit.modifyContent(content).filter(Boolean);
 
@@ -670,13 +706,7 @@ export default Component.extend(
       const rowContainer = this.element.querySelector(
         `.select-kit-row[data-value="${value}"]`
       );
-
-      if (rowContainer) {
-        const collectionContainer = rowContainer.parentNode;
-
-        collectionContainer.scrollTop =
-          rowContainer.offsetTop - collectionContainer.offsetTop;
-      }
+      rowContainer && rowContainer.focus();
     },
 
     _highlightNext() {
@@ -858,59 +888,6 @@ export default Component.extend(
               },
               effect: ({ state }) => {
                 state.elements.popper.style.minWidth = `${state.elements.reference.offsetWidth}px`;
-              },
-            },
-            {
-              name: "positionWrapper",
-              phase: "afterWrite",
-              enabled: true,
-              fn: (data) => {
-                const wrapper = this.element.querySelector(
-                  ".select-kit-wrapper"
-                );
-                if (wrapper) {
-                  let height = this.element.offsetHeight + verticalOffset;
-
-                  const body = this.element.querySelector(".select-kit-body");
-                  if (body) {
-                    height += body.offsetHeight;
-                  }
-
-                  const popperElement = data.state.elements.popper;
-                  const topPlacement =
-                    popperElement &&
-                    popperElement
-                      .getAttribute("data-popper-placement")
-                      .startsWith("top-");
-                  if (topPlacement) {
-                    this.element.classList.remove("is-under");
-                    this.element.classList.add("is-above");
-                  } else {
-                    this.element.classList.remove("is-above");
-                    this.element.classList.add("is-under");
-                  }
-
-                  wrapper.style.width = `${this.element.offsetWidth}px`;
-                  wrapper.style.height = `${height}px`;
-                  if (placementStrategy === "fixed") {
-                    const rects = this.element.getClientRects()[0];
-
-                    if (rects) {
-                      const bodyRects = body && body.getClientRects()[0];
-
-                      wrapper.style.position = "fixed";
-                      wrapper.style.left = `${rects.left}px`;
-                      if (topPlacement && bodyRects) {
-                        wrapper.style.top = `${rects.top - bodyRects.height}px`;
-                      } else {
-                        wrapper.style.top = `${rects.top}px`;
-                      }
-                      if (isDocumentRTL()) {
-                        wrapper.style.right = "unset";
-                      }
-                    }
-                  }
-                }
               },
             },
           ],

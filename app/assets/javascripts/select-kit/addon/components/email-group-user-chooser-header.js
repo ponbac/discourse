@@ -31,7 +31,7 @@ export default MultiSelectHeaderComponent.extend({
         !this.selectKit.options.autoWrap ||
         this.selectKit.isExpanded ||
         this.selectedContent === this.selectKit.noneItem ||
-        this.selectedContent.length <= 1 ||
+        !this.selectedContent ||
         isTesting()
       ) {
         return 0;

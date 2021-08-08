@@ -109,7 +109,7 @@ discourseModule("Integration | Component | value-list", function (hooks) {
 
       await selectKit().expand();
       await selectKit().fillInFilter("eviltrout");
-      await selectKit().keyboard("enter");
+      await selectKit().selectRowByValue("eviltrout");
 
       assert.equal(
         count(".values .value"),

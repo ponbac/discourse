@@ -12,8 +12,7 @@ export default Component.extend(UtilsMixin, {
   classNames: ["select-kit-filter"],
   classNameBindings: ["isExpanded:is-expanded"],
   attributeBindings: ["role"],
-
-  role: "searchbox",
+  tabIndex: -1,
 
   isHidden: computed(
     "selectKit.options.{filterable,allowAny,autoFilterable}",
@@ -54,7 +53,7 @@ export default Component.extend(UtilsMixin, {
     },
 
     onKeyup(event) {
-      if (event.keyCode === 13 && this.selectKit.enterDisabled) {
+      if (event.key === "Enter" && this.selectKit.enterDisabled) {
         this.element.querySelector("input").focus();
         event.preventDefault();
         event.stopPropagation();
@@ -68,31 +67,27 @@ export default Component.extend(UtilsMixin, {
         return false;
       }
 
-      // Do nothing for left/right arrow
-      if (event.keyCode === 37 || event.keyCode === 39) {
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
         return true;
       }
 
-      // Up arrow
-      if (event.keyCode === 38) {
+      if (event.key === "ArrowUp") {
         this.selectKit.highlightPrevious();
         return false;
       }
 
-      // Down arrow
-      if (event.keyCode === 40) {
+      if (event.key === "ArrowDown") {
         this.selectKit.highlightNext();
         return false;
       }
 
-      // Escape
-      if (event.keyCode === 27) {
-        this.selectKit.close(event);
+      if (event.key === "Escape") {
+        this.selectKit.mainElement().open = false;
+        this.selectKit.headerElement().focus();
         return false;
       }
 
-      // Enter
-      if (event.keyCode === 13 && this.selectKit.highlighted) {
+      if (event.key === "Enter" && this.selectKit.highlighted) {
         this.selectKit.select(
           this.getValue(this.selectKit.highlighted),
           this.selectKit.highlighted
@@ -101,7 +96,7 @@ export default Component.extend(UtilsMixin, {
       }
 
       if (
-        event.keyCode === 13 &&
+        event.key === "Enter" &&
         (!this.selectKit.highlighted || this.selectKit.enterDisabled)
       ) {
         this.element.querySelector("input").focus();
@@ -112,17 +107,6 @@ export default Component.extend(UtilsMixin, {
         return false;
       }
 
-      // Tab
-      if (event.keyCode === 9) {
-        if (this.selectKit.highlighted && this.selectKit.isExpanded) {
-          this.selectKit.select(
-            this.getValue(this.selectKit.highlighted),
-            this.selectKit.highlighted
-          );
-        }
-        this.selectKit.close(event);
-        return;
-      }
       this.selectKit.set("highlighted", null);
     },
   },

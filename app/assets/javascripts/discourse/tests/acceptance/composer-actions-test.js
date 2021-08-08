@@ -23,7 +23,6 @@ acceptance("Composer Actions", function (needs) {
   test("creating new topic and then reply_as_private_message keeps attributes", async function (assert) {
     await visit("/");
     await click("button#create-topic");
-
     await fillIn("#reply-title", "this is the title");
     await fillIn(".d-editor-input", "this is the reply");
 

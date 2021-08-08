@@ -11,13 +11,4 @@
       {{i18n "x_more" count=hiddenItemsCount}}
     </div>
   {{/if}}
-
-  {{#unless hasReachedMaximumSelection}}
-    <div class="choice input-wrapper">
-      {{component selectKit.options.filterComponent
-        selectKit=selectKit
-        id=(concat selectKit.uniqueID "-filter")
-      }}
-    </div>
-  {{/unless}}
 </div>
