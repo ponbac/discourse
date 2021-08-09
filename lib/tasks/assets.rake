@@ -190,6 +190,15 @@ def concurrent?
   end
 end
 
+def start_clock
+  Process.clock_gettime(Process::CLOCK_MONOTONIC)
+end
+
+def log_task_duration(task, start)
+  STDERR.puts "Done '#{task}' : #{(Process.clock_gettime(Process::CLOCK_MONOTONIC) - start).round(2)} secs"
+  STDERR.puts
+end
+
 def geolite_dbs
   @geolite_dbs ||= %w{
     GeoLite2-City
@@ -229,16 +238,21 @@ def copy_ember_cli_assets
   assets = {}
   files = {}
 
+  start = start_clock
   unless system("yarn --cwd #{ember_dir} install")
     STDERR.puts "Error running yarn install"
     exit 1
   end
+  log_task_duration('yarn install', start)
 
+  start = start_clock
   unless system("yarn --cwd #{ember_dir} run ember build -prod")
     STDERR.puts "Error running ember build"
     exit 1
   end
+  log_task_duration('ember build -prod', start)
 
+  start = start_clock
   # Copy assets and generate manifest data
   Dir["#{ember_cli_assets}**/*"].each do |f|
     if f !~ /test/ && File.file?(f)
@@ -272,15 +286,18 @@ def copy_ember_cli_assets
       }
     end
   end
+  log_task_duration('Copy assets and generate manifest data', start)
 
   # Update manifest file
   manifest_result = Dir["public/assets/.sprockets-manifest-*.json"]
+  start = start_clock
   if manifest_result && manifest_result.size == 1
     json = JSON.parse(File.read(manifest_result[0]))
     json['files'].merge!(files)
     json['assets'].merge!(assets)
     File.write(manifest_result[0], json.to_json)
   end
+  log_task_duration('Update manifest file', start)
 end
 
 task 'test_ember_cli_copy' do
@@ -332,7 +349,7 @@ task 'assets:precompile' => 'assets:precompile:before' do
 
   if $bypass_sprockets_uglify
     puts "Compressing Javascript and Generating Source Maps"
-    startAll = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    startAll = start_clock
     manifest = Sprockets::Manifest.new(assets_path)
 
     locales = Set.new(["en"])
@@ -356,7 +373,7 @@ task 'assets:precompile' => 'assets:precompile:before' do
             STDERR.puts "Skipping: #{file}"
           else
             proc.call do
-              start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+              start = start_clock
               STDERR.puts "#{start} Compressing: #{file}"
 
               if max_compress
@@ -369,15 +386,13 @@ task 'assets:precompile' => 'assets:precompile:before' do
               gzip(path)
               brotli(path, max_compress)
 
-              STDERR.puts "Done compressing #{file} : #{(Process.clock_gettime(Process::CLOCK_MONOTONIC) - start).round(2)} secs"
-              STDERR.puts
+              log_task_duration(file, start)
             end
           end
       end
     end
 
-    STDERR.puts "Done compressing all JS files : #{(Process.clock_gettime(Process::CLOCK_MONOTONIC) - startAll).round(2)} secs"
-    STDERR.puts
+    log_task_duration('Done compressing all JS files', startAll)
 
     # protected
     manifest.send :save
