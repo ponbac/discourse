@@ -1,0 +1,23 @@
+---
+default_locale: sv
+title: NRH Trauma - Medlemssida
+site_description: En mötesplats för medlemmar i NRH Traumas riksförening.
+short_site_description: Mötesplats för medlemmar i NRH Trauma
+contact_email: pontus98@hotmail.com
+contact_url: https://nrhtrauma.se
+site_contact_username: system
+company_name: NRH Trauma Riks
+governing_law: Svensk lag
+logo: "/uploads/default/original/1X/67552e01ec4ce075a95762852ccf1345f293aae6.png"
+logo_small: "/uploads/default/original/1X/c1a3003e22a31c6416cd590013df15b10db8751a.png"
+invite_only: 'true'
+login_required: 'true'
+min_password_length: '8'
+min_admin_password_length: '10'
+password_unique_characters: '4'
+block_common_passwords: 'false'
+invite_expiry_days: '365'
+default_trust_level: '2'
+default_invitee_trust_level: '2'
+allowed_iframes: https://www.google.com/maps/embed?|https://www.openstreetmap.org/export/embed.html?|https://calendar.google.com/calendar/embed?|https://codepen.io/|http://localhost:3000/discobot/certificate.svg
+default_email_digest_frequency: '1440'
